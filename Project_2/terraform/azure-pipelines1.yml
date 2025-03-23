@@ -11,13 +11,19 @@ variables:
 
 stages:
   - stage: Terraform_Deploy
-    displayName: 'Terraform Plan & Apply'
+    displayName: 'Terraform Apply'
     jobs:
       - job: Terraform
         displayName: 'Run Terraform'
         timeoutInMinutes: 10
         steps:
           - checkout: self
+
+          # Verify that Terraform files exist
+          - script: |
+              echo "Checking for Terraform configuration files..."
+              ls -l $(Build.SourcesDirectory)
+            displayName: 'Verify Terraform Files'
 
           # Install Terraform using bash
           - script: |
@@ -27,28 +33,23 @@ stages:
               terraform -v
             displayName: 'Install Terraform'
 
-          # Initialize Terraform (without remote backend)
+          # Initialize Terraform (Ensure the correct directory is used)
           - script: |
+              cd $(Build.SourcesDirectory)
               terraform init
             displayName: 'Terraform Init'
-
-          # Run Terraform Plan
-          - script: |
-              terraform plan \
-                -var "subscription_id=$(SUBSCRIPTION_ID)" \
-                -var "client_id=$(CLIENT_ID)" \
-                -var "client_secret=$(CLIENT_SECRET)" \
-                -var "tenant_id=$(TENANT_ID)"
-            displayName: 'Terraform Plan'
+            workingDirectory: $(Build.SourcesDirectory)
 
           # Apply Terraform changes
           - script: |
+              cd $(Build.SourcesDirectory)
               terraform apply -auto-approve \
                 -var "subscription_id=$(SUBSCRIPTION_ID)" \
                 -var "client_id=$(CLIENT_ID)" \
                 -var "client_secret=$(CLIENT_SECRET)" \
                 -var "tenant_id=$(TENANT_ID)"
             displayName: 'Terraform Apply'
+            workingDirectory: $(Build.SourcesDirectory)
 
 
 
