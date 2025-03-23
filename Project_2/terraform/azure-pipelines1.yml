@@ -17,7 +17,7 @@ stages:
   - job: Terraform
     displayName: 'Run Terraform'
     variables:
-      - group: azure_credential  # Reference the variable group
+      - group: azure_credential  # Ensure this group contains the required secrets
 
     steps:
     - checkout: self
@@ -49,12 +49,18 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          export TF_VAR_subscription_id=$SUBSCRIPTION_ID
-          export TF_VAR_client_id=$CLIENT_ID
-          export TF_VAR_client_secret=$CLIENT_SECRET
-          export TF_VAR_tenant_id=$TENANT_ID
+          echo "Setting Terraform Environment Variables..."
+          export TF_VAR_subscription_id=$(SUBSCRIPTION_ID)
+          export TF_VAR_client_id=$(CLIENT_ID)
+          export TF_VAR_client_secret=$(CLIENT_SECRET)
+          export TF_VAR_tenant_id=$(TENANT_ID)
 
+          echo "Running Terraform Plan..."
           timeout 300 terraform plan -input=false \
+                                     -var="subscription_id=$(SUBSCRIPTION_ID)" \
+                                     -var="client_id=$(CLIENT_ID)" \
+                                     -var="client_secret=$(CLIENT_SECRET)" \
+                                     -var="tenant_id=$(TENANT_ID)" \
                                      -out=tfplan
         workingDirectory: $(terraformWorkingDirectory)
 
@@ -65,6 +71,7 @@ stages:
         script: |
           terraform apply -auto-approve tfplan
         workingDirectory: $(terraformWorkingDirectory)
+
 
 
 
