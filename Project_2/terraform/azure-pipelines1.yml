@@ -1,76 +1,60 @@
 trigger:
   branches:
     include:
-      - main
+      - main  # Adjust the branch name as needed
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureServiceConnection: 'azure-sc'
-  terraformWorkingDirectory: 'Project_2/terraform'
+  - group: azure_credential  # Uses variable group where CLIENT_SECRET, TENANT_ID, and SUBSCRIPTION_ID are stored
 
 stages:
-- stage: Terraform_Deploy
-  displayName: 'Terraform Deployment'
-  jobs:
-  - job: Terraform
-    displayName: 'Run Terraform'
-    variables:
-      - group: azure_credential  # Ensure this group contains the required secrets
+  - stage: Terraform_Deploy
+    displayName: 'Terraform Plan & Apply'
+    jobs:
+      - job: Terraform
+        displayName: 'Run Terraform'
+        timeoutInMinutes: 10  # Limit execution time to 10 minutes
+        steps:
+          - checkout: self
 
-    steps:
-    - checkout: self
+          - task: TerraformInstaller@0
+            displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: '1.6.0'  # Use the required Terraform version
 
-    - task: TerraformInstaller@1
-      displayName: 'Install Terraform'
-      inputs:
-        terraformVersion: 'latest'
+          - task: TerraformCLI@0
+            displayName: 'Terraform Init'
+            inputs:
+              command: 'init'
+              workingDirectory: '$(Build.SourcesDirectory)'
+              backendType: 'azurerm'
+              backendServiceArm: 'azure-sc'  # Your service connection name
 
-    - task: AzureCLI@2
-      displayName: 'Azure Login'
-      inputs:
-        azureSubscription: $(azureServiceConnection)
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          az account show
+          - task: TerraformCLI@0
+            displayName: 'Terraform Plan'
+            inputs:
+              command: 'plan'
+              workingDirectory: '$(Build.SourcesDirectory)'
+              environmentServiceNameAzureRM: 'azure-sc'
+              commandOptions: > 
+                -var "CLIENT_SECRET=$(CLIENT_SECRET)"
+                -var "TENANT_ID=$(TENANT_ID)"
+                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)"
 
-    - task: Bash@3
-      displayName: 'Terraform Init'
-      inputs:
-        targetType: 'inline'
-        script: |
-          terraform init
-        workingDirectory: $(terraformWorkingDirectory)
+          - task: TerraformCLI@0
+            displayName: 'Terraform Apply'
+            inputs:
+              command: 'apply'
+              workingDirectory: '$(Build.SourcesDirectory)'
+              environmentServiceNameAzureRM: 'azure-sc'
+              commandOptions: > 
+                -auto-approve
+                -var "CLIENT_SECRET=$(CLIENT_SECRET)"
+                -var "TENANT_ID=$(TENANT_ID)"
+                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)"
 
-    - task: Bash@3
-      displayName: 'Terraform Plan'
-      inputs:
-        targetType: 'inline'
-        script: |
-          echo "Setting Terraform Environment Variables..."
-          export TF_VAR_subscription_id=$(SUBSCRIPTION_ID)
-          export TF_VAR_client_id=$(CLIENT_ID)
-          export TF_VAR_client_secret=$(CLIENT_SECRET)
-          export TF_VAR_tenant_id=$(TENANT_ID)
-
-          echo "Running Terraform Plan..."
-          timeout 300 terraform plan -input=false \
-                                     -var="subscription_id=$(SUBSCRIPTION_ID)" \
-                                     -var="client_id=$(CLIENT_ID)" \
-                                     -var="client_secret=$(CLIENT_SECRET)" \
-                                     -var="tenant_id=$(TENANT_ID)" \
-                                     -out=tfplan
-        workingDirectory: $(terraformWorkingDirectory)
-
-    - task: Bash@3
-      displayName: 'Terraform Apply'
-      inputs:
-        targetType: 'inline'
-        script: |
-          terraform apply -auto-approve tfplan
-        workingDirectory: $(terraformWorkingDirectory)
 
 
 
