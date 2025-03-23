@@ -49,10 +49,12 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          timeout 300 terraform plan -var="subscription_id=$SUBSCRIPTION_ID" \
-                                     -var="client_id=$CLIENT_ID" \
-                                     -var="client_secret=$CLIENT_SECRET" \
-                                     -var="tenant_id=$TENANT_ID" \
+          export TF_VAR_subscription_id=$SUBSCRIPTION_ID
+          export TF_VAR_client_id=$CLIENT_ID
+          export TF_VAR_client_secret=$CLIENT_SECRET
+          export TF_VAR_tenant_id=$TENANT_ID
+
+          timeout 300 terraform plan -input=false \
                                      -out=tfplan
         workingDirectory: $(terraformWorkingDirectory)
 
@@ -63,6 +65,7 @@ stages:
         script: |
           terraform apply -auto-approve tfplan
         workingDirectory: $(terraformWorkingDirectory)
+
 
 
 
