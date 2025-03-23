@@ -38,10 +38,9 @@ stages:
               command: 'plan'
               workingDirectory: '$(Build.SourcesDirectory)'
               environmentServiceNameAzureRM: 'azure-sc'
+              # Use environment variables for sensitive data
               commandOptions: > 
-                -var "CLIENT_SECRET=$(CLIENT_SECRET)"
-                -var "TENANT_ID=$(TENANT_ID)"
-                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)"
+                -var "subscription_id=$(SUBSCRIPTION_ID)"
 
           - task: TerraformCLI@0
             displayName: 'Terraform Apply'
@@ -51,9 +50,8 @@ stages:
               environmentServiceNameAzureRM: 'azure-sc'
               commandOptions: > 
                 -auto-approve
-                -var "CLIENT_SECRET=$(CLIENT_SECRET)"
-                -var "TENANT_ID=$(TENANT_ID)"
-                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)"
+                -var "subscription_id=$(SUBSCRIPTION_ID)"
+
 
 
 
