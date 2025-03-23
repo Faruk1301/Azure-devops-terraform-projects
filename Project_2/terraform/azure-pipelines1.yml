@@ -1,13 +1,13 @@
 trigger:
   branches:
     include:
-      - main  # Adjust the branch name as needed
+      - main  # Adjust as necessary
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: azure_credential  # Uses variable group where CLIENT_SECRET, TENANT_ID, and SUBSCRIPTION_ID are stored
+  - group: azure_credential  # Variable group containing sensitive data like CLIENT_ID, CLIENT_SECRET, etc.
 
 stages:
   - stage: Terraform_Deploy
@@ -15,42 +15,41 @@ stages:
     jobs:
       - job: Terraform
         displayName: 'Run Terraform'
-        timeoutInMinutes: 10  # Limit execution time to 10 minutes
+        timeoutInMinutes: 10
         steps:
           - checkout: self
 
-          - task: TerraformInstaller@0
+          # Install Terraform using bash
+          - script: |
+              echo "Installing Terraform"
+              curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo tee /etc/apt/trusted.gpg.d/hashicorp.asc
+              sudo apt update && sudo apt install -y terraform
+              terraform -v
             displayName: 'Install Terraform'
-            inputs:
-              terraformVersion: '1.6.0'  # Use the required Terraform version
 
-          - task: TerraformCLI@0
+          # Initialize Terraform (without remote backend)
+          - script: |
+              terraform init
             displayName: 'Terraform Init'
-            inputs:
-              command: 'init'
-              workingDirectory: '$(Build.SourcesDirectory)'
-              backendType: 'azurerm'
-              backendServiceArm: 'azure-sc'  # Your service connection name
 
-          - task: TerraformCLI@0
+          # Run Terraform Plan
+          - script: |
+              terraform plan \
+                -var "subscription_id=$(SUBSCRIPTION_ID)" \
+                -var "client_id=$(CLIENT_ID)" \
+                -var "client_secret=$(CLIENT_SECRET)" \
+                -var "tenant_id=$(TENANT_ID)"
             displayName: 'Terraform Plan'
-            inputs:
-              command: 'plan'
-              workingDirectory: '$(Build.SourcesDirectory)'
-              environmentServiceNameAzureRM: 'azure-sc'
-              # Use environment variables for sensitive data
-              commandOptions: > 
-                -var "subscription_id=$(SUBSCRIPTION_ID)"
 
-          - task: TerraformCLI@0
+          # Apply Terraform changes
+          - script: |
+              terraform apply -auto-approve \
+                -var "subscription_id=$(SUBSCRIPTION_ID)" \
+                -var "client_id=$(CLIENT_ID)" \
+                -var "client_secret=$(CLIENT_SECRET)" \
+                -var "tenant_id=$(TENANT_ID)"
             displayName: 'Terraform Apply'
-            inputs:
-              command: 'apply'
-              workingDirectory: '$(Build.SourcesDirectory)'
-              environmentServiceNameAzureRM: 'azure-sc'
-              commandOptions: > 
-                -auto-approve
-                -var "subscription_id=$(SUBSCRIPTION_ID)"
+
 
 
 
