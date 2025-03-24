@@ -7,7 +7,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: azure_credential  # Variable group containing sensitive data like CLIENT_ID, CLIENT_SECRET, etc.
+  - group: azure_credential  # Variable group containing CLIENT_ID, CLIENT_SECRET, etc.
 
 stages:
   - stage: Terraform_Deploy
@@ -19,35 +19,31 @@ stages:
         steps:
           - checkout: self
 
-          # Verify that Terraform files exist
-          - script: |
-              echo "Checking for Terraform configuration files..."
-              ls -l $(Build.SourcesDirectory)
-            displayName: 'Verify Terraform Files'
-
-          # Install Terraform using bash
-          - script: |
-              echo "Installing Terraform"
-              curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo tee /etc/apt/trusted.gpg.d/hashicorp.asc
-              sudo apt update && sudo apt install -y terraform
-              terraform -v
+          # Install Terraform using built-in Azure DevOps task
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: 'latest'
             displayName: 'Install Terraform'
 
-          # Initialize Terraform (Ensure the correct directory is used)
+          # Initialize Terraform
           - script: |
-              cd $(Build.SourcesDirectory)
               terraform init
             displayName: 'Terraform Init'
             workingDirectory: $(Build.SourcesDirectory)
 
-          # Apply Terraform changes
+          # Run Terraform Plan (optional but recommended)
           - script: |
-              cd $(Build.SourcesDirectory)
-              terraform apply -auto-approve \
+              terraform plan -out=tfplan \
                 -var "subscription_id=$(SUBSCRIPTION_ID)" \
                 -var "client_id=$(CLIENT_ID)" \
                 -var "client_secret=$(CLIENT_SECRET)" \
                 -var "tenant_id=$(TENANT_ID)"
+            displayName: 'Terraform Plan'
+            workingDirectory: $(Build.SourcesDirectory)
+
+          # Apply Terraform changes
+          - script: |
+              terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
             workingDirectory: $(Build.SourcesDirectory)
 
