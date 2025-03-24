@@ -1,13 +1,13 @@
 trigger:
   branches:
     include:
-      - main  # Adjust as necessary
+      - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: azure_credential  # Variable group containing CLIENT_ID, CLIENT_SECRET, etc.
+  - group: azure_credential  
 
 stages:
   - stage: Terraform_Deploy
@@ -19,19 +19,25 @@ stages:
         steps:
           - checkout: self
 
-          # Install Terraform using built-in Azure DevOps task
+          # Verify Terraform files exist in the correct directory
+          - script: |
+              echo "Listing files in terraform directory..."
+              ls -la $(Build.SourcesDirectory)/Project_2/terraform/
+            displayName: 'Verify Terraform Files'
+
+          # Install Terraform
           - task: TerraformInstaller@0
             inputs:
               terraformVersion: 'latest'
             displayName: 'Install Terraform'
 
-          # Initialize Terraform
+          # Initialize Terraform in the correct directory
           - script: |
               terraform init
             displayName: 'Terraform Init'
-            workingDirectory: $(Build.SourcesDirectory)
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Run Terraform Plan (optional but recommended)
+          # Run Terraform Plan
           - script: |
               terraform plan -out=tfplan \
                 -var "subscription_id=$(SUBSCRIPTION_ID)" \
@@ -39,16 +45,13 @@ stages:
                 -var "client_secret=$(CLIENT_SECRET)" \
                 -var "tenant_id=$(TENANT_ID)"
             displayName: 'Terraform Plan'
-            workingDirectory: $(Build.SourcesDirectory)
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
           # Apply Terraform changes
           - script: |
               terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
-            workingDirectory: $(Build.SourcesDirectory)
-
-
-
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
 
 
