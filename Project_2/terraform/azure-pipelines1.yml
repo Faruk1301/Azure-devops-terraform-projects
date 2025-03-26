@@ -19,31 +19,41 @@ stages:
         steps:
           - checkout: self
 
-          # Verify Terraform files exist in the correct directory
-          - script: |
-              echo "Listing files in terraform directory..."
-              ls -la $(Build.SourcesDirectory)/Project_2/terraform/
-            displayName: 'Verify Terraform Files'
-
           # Install Terraform
           - task: TerraformInstaller@0
             inputs:
               terraformVersion: 'latest'
             displayName: 'Install Terraform'
 
-          # Initialize Terraform in the correct directory
+          # Azure Login using Service Connection
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-sc'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az account show
+            displayName: 'Azure Login'
+
+          # Initialize Terraform
           - script: |
               terraform init
             displayName: 'Terraform Init'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
+          # Validate Terraform configuration
+          - script: |
+              terraform validate
+            displayName: 'Terraform Validate'
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
           # Run Terraform Plan
           - script: |
               terraform plan -out=tfplan \
-                -var "subscription_id=$(SUBSCRIPTION_ID)" \
-                -var "client_id=$(CLIENT_ID)" \
-                -var "client_secret=$(CLIENT_SECRET)" \
-                -var "tenant_id=$(TENANT_ID)"
+                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
+                -var "CLIENT_ID=$(CLIENT_ID)" \
+                -var "CLIENT_SECRET=$(CLIENT_SECRET)" \
+                -var "TENANT_ID=$(TENANT_ID)"
             displayName: 'Terraform Plan'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
@@ -52,6 +62,7 @@ stages:
               terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
 
 
 
