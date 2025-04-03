@@ -54,24 +54,18 @@ stages:
             displayName: 'Terraform Import RG1'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Set Terraform Environment Variables
+          # Run Terraform Plan
           - script: |
               export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
               export ARM_CLIENT_ID=$(CLIENT_ID)
               export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
               export ARM_TENANT_ID=$(TENANT_ID)
 
-              echo "Terraform environment variables set successfully."
-            displayName: 'Set Terraform Environment Variables'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Run Terraform Plan with explicitly passed variables
-          - script: |
               terraform plan -out=tfplan \
-                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
-                -var "CLIENT_ID=$(CLIENT_ID)" \
-                -var "CLIENT_SECRET=$(CLIENT_SECRET)" \
-                -var "TENANT_ID=$(TENANT_ID)"
+                -var "SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID" \
+                -var "CLIENT_ID=$ARM_CLIENT_ID" \
+                -var "CLIENT_SECRET=$ARM_CLIENT_SECRET" \
+                -var "TENANT_ID=$ARM_TENANT_ID"
             displayName: 'Terraform Plan'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
@@ -80,6 +74,7 @@ stages:
               terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
 
 
 
