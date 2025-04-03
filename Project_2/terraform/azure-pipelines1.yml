@@ -50,17 +50,17 @@ stages:
 
           # Import the existing resource group if it already exists
           - script: |
-              terraform import azurerm_resource_group.rg /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1
-            displayName: 'Terraform Import RG1'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Run Terraform Plan
-          - script: |
               export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
               export ARM_CLIENT_ID=$(CLIENT_ID)
               export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
               export ARM_TENANT_ID=$(TENANT_ID)
 
+              terraform import azurerm_resource_group.rg /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/RG1
+            displayName: 'Terraform Import RG1'
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
+          # Run Terraform Plan
+          - script: |
               terraform plan -out=tfplan \
                 -var "SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID" \
                 -var "CLIENT_ID=$ARM_CLIENT_ID" \
