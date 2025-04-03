@@ -1,3 +1,4 @@
+
 variable "SUBSCRIPTION_ID" {
   description = "Azure Subscription ID"
   type        = string
@@ -27,10 +28,13 @@ provider "azurerm" {
   tenant_id       = var.TENANT_ID
 }
 
-# Resource Group
+# Import existing Resource Group
 resource "azurerm_resource_group" "rg" {
   name     = "RG1"
   location = "East US"
+  lifecycle {
+    prevent_destroy = true  # Prevent accidental deletion
+  }
 }
 
 # Virtual Network
@@ -53,4 +57,3 @@ resource "azurerm_subnet" "subnet" {
 output "vnet_name" {
   value = azurerm_virtual_network.vnet.name
 }
-
