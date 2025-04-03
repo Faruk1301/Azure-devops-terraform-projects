@@ -1,104 +1,61 @@
-trigger:
-  branches:
-    include:
-      - main
+variable "SUBSCRIPTION_ID" {
+  description = "Azure Subscription ID"
+  type        = string
+}
 
-pool:
-  vmImage: 'ubuntu-latest'
+variable "CLIENT_ID" {
+  description = "Azure Client ID"
+  type        = string
+}
 
-variables:
-  - group: azure_credential  # Includes SUBSCRIPTION_ID, CLIENT_ID, CLIENT_SECRET, TENANT_ID
+variable "CLIENT_SECRET" {
+  description = "Azure Client Secret"
+  type        = string
+  sensitive   = true
+}
 
-stages:
-  - stage: Terraform_Deploy
-    displayName: 'Terraform Apply'
-    jobs:
-      - job: Terraform
-        displayName: 'Run Terraform'
-        timeoutInMinutes: 10
-        steps:
-          - checkout: self
+variable "TENANT_ID" {
+  description = "Azure Tenant ID"
+  type        = string
+}
 
-          # Install Terraform
-          - task: TerraformInstaller@0
-            inputs:
-              terraformVersion: 'latest'
-            displayName: 'Install Terraform'
+provider "azurerm" {
+  features {}
+  subscription_id = var.SUBSCRIPTION_ID
+  client_id       = var.CLIENT_ID
+  client_secret   = var.CLIENT_SECRET
+  tenant_id       = var.TENANT_ID
+}
 
-          # Azure Login using Service Connection
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: 'azure-sc'
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                az account show
-            displayName: 'Azure Login'
+# Import existing Resource Group
+resource "azurerm_resource_group" "rg" {
+  name     = "RG1"
+  location = "East US"
+  lifecycle {
+    prevent_destroy = true  # Prevent accidental deletion
+  }
+}
 
-          # Debug Azure DevOps Variables
-          - script: |
-              echo "Checking Azure DevOps Variables..."
-              echo "SUBSCRIPTION_ID: $(SUBSCRIPTION_ID)"
-              echo "CLIENT_ID: $(CLIENT_ID)"
-              echo "TENANT_ID: $(TENANT_ID)"
-              echo "CLIENT_SECRET: [HIDDEN]"  # Hide secrets for security
-            displayName: 'Debug Variables'
+# Virtual Network
+resource "azurerm_virtual_network" "vnet" {
+  name                = "my-vnet"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
+}
 
-          # Set Terraform Authentication Environment Variables
-          - script: |
-              echo "Setting Terraform authentication variables..."
-              export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-              export ARM_CLIENT_ID=$(CLIENT_ID)
-              export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
-              export ARM_TENANT_ID=$(TENANT_ID)
+# Subnet
+resource "azurerm_subnet" "subnet" {
+  name                 = "my-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.0.0/24"]
+}
 
-              export TF_VAR_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-              export TF_VAR_CLIENT_ID=$(CLIENT_ID)
-              export TF_VAR_CLIENT_SECRET=$(CLIENT_SECRET)
-              export TF_VAR_TENANT_ID=$(TENANT_ID)
-
-              echo "Terraform environment variables set successfully."
-            displayName: 'Set Terraform Environment Variables'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Initialize Terraform
-          - script: terraform init
-            displayName: 'Terraform Init'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Validate Terraform configuration
-          - script: terraform validate
-            displayName: 'Terraform Validate'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Check if RG1 already exists before importing
-          - script: |
-              RG_EXISTS=$(az group exists --name RG1)
-              if [ "$RG_EXISTS" == "true" ]; then
-                echo "Resource Group RG1 exists. Importing into Terraform..."
-                terraform import azurerm_resource_group.rg /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1 || echo "Import failed, continuing..."
-              else
-                echo "Resource Group RG1 does not exist. Skipping import."
-              fi
-            displayName: 'Terraform Import RG1'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Run Terraform Plan with explicit variables
-          - script: |
-              terraform plan -out=tfplan \
-                -var="SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
-                -var="CLIENT_ID=$(CLIENT_ID)" \
-                -var="CLIENT_SECRET=$(CLIENT_SECRET)" \
-                -var="TENANT_ID=$(TENANT_ID)"
-            displayName: 'Terraform Plan'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Apply Terraform changes
-          - script: |
-              terraform apply -auto-approve tfplan
-            displayName: 'Terraform Apply'
-            condition: always()  # Ensures this step runs even if the previous one fails
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+# Output
+output "vnet_name" {
+  value = azurerm_virtual_network.vnet.name
+}
 
 
 
