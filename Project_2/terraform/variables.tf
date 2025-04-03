@@ -1,10 +1,20 @@
-variable "resource_group_name" {
-  type    = string
-  default = "RG1"
+variable "SUBSCRIPTION_ID" {
+  description = "Azure Subscription ID"
+  type        = string
 }
 
-variable "location" {
-  type    = string
-  default = "East US"
+variable "TENANT_ID" {
+  description = "Azure Tenant ID"
+  type        = string
+}
+
+variable "CLIENT_ID" {
+  description = "Azure Client ID"
+  type        = string
+}
+
+variable "CLIENT_SECRET" {
+  description = "Azure Client Secret"
+  type        = string
 }
 
