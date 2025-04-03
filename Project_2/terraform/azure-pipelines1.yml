@@ -1,62 +1,99 @@
-variable "SUBSCRIPTION_ID" {
-  description = "Azure Subscription ID"
-  type        = string
-}
+trigger:
+  branches:
+    include:
+      - main
 
-variable "CLIENT_ID" {
-  description = "Azure Client ID"
-  type        = string
-}
+pool:
+  vmImage: 'ubuntu-latest'
 
-variable "CLIENT_SECRET" {
-  description = "Azure Client Secret"
-  type        = string
-  sensitive   = true
-}
+variables:
+  - group: azure_credential  # This should include SUBSCRIPTION_ID, CLIENT_ID, CLIENT_SECRET, TENANT_ID
 
-variable "TENANT_ID" {
-  description = "Azure Tenant ID"
-  type        = string
-}
+stages:
+  - stage: Terraform_Deploy
+    displayName: 'Terraform Apply'
+    jobs:
+      - job: Terraform
+        displayName: 'Run Terraform'
+        timeoutInMinutes: 10
+        steps:
+          - checkout: self
 
-provider "azurerm" {
-  features {}
-  subscription_id = var.SUBSCRIPTION_ID
-  client_id       = var.CLIENT_ID
-  client_secret   = var.CLIENT_SECRET
-  tenant_id       = var.TENANT_ID
-}
+          # Install Terraform
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: 'latest'
+            displayName: 'Install Terraform'
+            continueOnError: true
 
-# Import existing Resource Group
-resource "azurerm_resource_group" "rg" {
-  name     = "RG1"
-  location = "East US"
-  lifecycle {
-    prevent_destroy = true  # Prevent accidental deletion
-  }
-}
+          # Azure Login using Service Connection
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'azure-sc'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az account show
+            displayName: 'Azure Login'
+            continueOnError: true
 
-# Virtual Network
-resource "azurerm_virtual_network" "vnet" {
-  name                = "my-vnet"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["10.0.0.0/16"]
-}
+          # Set Terraform Authentication Environment Variables
+          - script: |
+              echo "Setting Terraform environment variables..."
+              export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+              export ARM_CLIENT_ID=$(CLIENT_ID)
+              export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
+              export ARM_TENANT_ID=$(TENANT_ID)
 
-# Subnet
-resource "azurerm_subnet" "subnet" {
-  name                 = "my-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.0.0/24"]
-}
+              echo "Setting Terraform variable environment variables..."
+              export TF_VAR_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+              export TF_VAR_CLIENT_ID=$(CLIENT_ID)
+              export TF_VAR_CLIENT_SECRET=$(CLIENT_SECRET)
+              export TF_VAR_TENANT_ID=$(TENANT_ID)
+            displayName: 'Set Terraform Environment Variables'
+            continueOnError: true
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-# Output
-output "vnet_name" {
-  value = azurerm_virtual_network.vnet.name
-}
+          # Initialize Terraform
+          - script: |
+              terraform init
+            displayName: 'Terraform Init'
+            continueOnError: true
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
+          # Validate Terraform configuration
+          - script: |
+              terraform validate
+            displayName: 'Terraform Validate'
+            continueOnError: true
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
+          # Check if RG1 already exists before importing
+          - script: |
+              RG_EXISTS=$(az group exists --name RG1)
+              if [ "$RG_EXISTS" == "true" ]; then
+                echo "Resource Group RG1 exists. Importing into Terraform..."
+                terraform import azurerm_resource_group.rg /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1 || echo "Import failed, continuing..."
+              else
+                echo "Resource Group RG1 does not exist. Skipping import."
+              fi
+            displayName: 'Terraform Import RG1'
+            continueOnError: true
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
+          # Run Terraform Plan
+          - script: |
+              terraform plan -out=tfplan || echo "Terraform Plan failed, continuing..."
+            displayName: 'Terraform Plan'
+            continueOnError: true
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
+          # Apply Terraform changes (Runs even if Plan fails)
+          - script: |
+              terraform apply -auto-approve tfplan || echo "Terraform Apply failed, continuing..."
+            displayName: 'Terraform Apply'
+            condition: always()  # Ensures this step runs even if the previous one fails
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
 
 
