@@ -17,7 +17,7 @@ stages:
         displayName: 'Run Terraform'
         timeoutInMinutes: 10
         steps:
-          - checkout: self
+          - checkout: self  # Ensure your Terraform configuration is checked out
 
           # Install Terraform
           - task: TerraformInstaller@0
@@ -35,19 +35,16 @@ stages:
                 az account show
             displayName: 'Azure Login'
 
-          # Terraform Init and Import using Bash@3
+          # Terraform Init and Import using Bash
           - task: Bash@3
             name: TerraformImport
             inputs:
               targetType: 'inline'
               script: |
                 terraform init
+                # Import the existing resource group, ensure the name matches 'rg'
                 terraform import \
-                  -var="CLIENT_ID=$(CLIENT_ID)" \
-                  -var="CLIENT_SECRET=$(CLIENT_SECRET)" \
-                  -var="SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
-                  -var="TENANT_ID=$(TENANT_ID)" \
-                  azurerm_resource_group.rg1 /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1
+                  azurerm_resource_group.rg /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1
               workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform/'
             displayName: 'Terraform Import RG1'
 
@@ -72,6 +69,7 @@ stages:
               terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
 
 
          
