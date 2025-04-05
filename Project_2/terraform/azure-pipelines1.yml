@@ -36,44 +36,51 @@ stages:
                 az account show
             displayName: 'Azure Login'
 
-          # Initialize Terraform
+          # Set environment variables for Terraform
           - script: |
-              terraform init
-            displayName: 'Terraform Init'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+              echo "Exporting environment variables..."
+              echo "ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" >> $BASH_ENV
+              echo "ARM_CLIENT_ID=$(CLIENT_ID)" >> $BASH_ENV
+              echo "ARM_CLIENT_SECRET=$(CLIENT_SECRET)" >> $BASH_ENV
+              echo "ARM_TENANT_ID=$(TENANT_ID)" >> $BASH_ENV
+            displayName: 'Set Terraform Env Vars'
 
-          # Validate Terraform configuration
-          - script: |
-              terraform validate
-            displayName: 'Terraform Validate'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
-
-          # Import the existing resource group if it already exists
-          - script: |
-              export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-              export ARM_CLIENT_ID=$(CLIENT_ID)
-              export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
-              export ARM_TENANT_ID=$(TENANT_ID)
-
-              terraform import azurerm_resource_group.rg /subscriptions/$ARM_SUBSCRIPTION_ID/resourceGroups/RG1
+          # Terraform Init and Import using Bash@3
+          - task: Bash@3
+            name: TerraformImport
+            inputs:
+              targetType: 'inline'
+              script: |
+                terraform init
+                terraform import \
+                  -var="CLIENT_ID=$(CLIENT_ID)" \
+                  -var="CLIENT_SECRET=$(CLIENT_SECRET)" \
+                  -var="SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
+                  -var="TENANT_ID=$(TENANT_ID)" \
+                  azurerm_resource_group.rg1 /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1
             displayName: 'Terraform Import RG1'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Run Terraform Plan
+          # Terraform Validate
+          - script: terraform validate
+            displayName: 'Terraform Validate'
+            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
+          # Terraform Plan
           - script: |
               terraform plan -out=tfplan \
-                -var "SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID" \
-                -var "CLIENT_ID=$ARM_CLIENT_ID" \
-                -var "CLIENT_SECRET=$ARM_CLIENT_SECRET" \
-                -var "TENANT_ID=$ARM_TENANT_ID"
+                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
+                -var "CLIENT_ID=$(CLIENT_ID)" \
+                -var "CLIENT_SECRET=$(CLIENT_SECRET)" \
+                -var "TENANT_ID=$(TENANT_ID)"
             displayName: 'Terraform Plan'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Apply Terraform changes
-          - script: |
-              terraform apply -auto-approve tfplan
+          # Terraform Apply
+          - script: terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+
 
 
 
