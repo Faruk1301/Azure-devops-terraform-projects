@@ -1,4 +1,3 @@
-
 trigger:
   branches:
     include:
@@ -36,15 +35,6 @@ stages:
                 az account show
             displayName: 'Azure Login'
 
-          # Set environment variables for Terraform
-          - script: |
-              echo "Exporting environment variables..."
-              echo "ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" >> $BASH_ENV
-              echo "ARM_CLIENT_ID=$(CLIENT_ID)" >> $BASH_ENV
-              echo "ARM_CLIENT_SECRET=$(CLIENT_SECRET)" >> $BASH_ENV
-              echo "ARM_TENANT_ID=$(TENANT_ID)" >> $BASH_ENV
-            displayName: 'Set Terraform Env Vars'
-
           # Terraform Init and Import using Bash@3
           - task: Bash@3
             name: TerraformImport
@@ -58,15 +48,16 @@ stages:
                   -var="SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
                   -var="TENANT_ID=$(TENANT_ID)" \
                   azurerm_resource_group.rg1 /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1
+              workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform/'
             displayName: 'Terraform Import RG1'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Terraform Validate
-          - script: terraform validate
+          # Validate Terraform configuration
+          - script: |
+              terraform validate
             displayName: 'Terraform Validate'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Terraform Plan
+          # Run Terraform Plan
           - script: |
               terraform plan -out=tfplan \
                 -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
@@ -76,13 +67,14 @@ stages:
             displayName: 'Terraform Plan'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
-          # Terraform Apply
-          - script: terraform apply -auto-approve tfplan
+          # Apply Terraform changes
+          - script: |
+              terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply'
             workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
 
 
-
+         
 
 
 
