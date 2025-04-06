@@ -1,74 +1,85 @@
 trigger:
   branches:
     include:
-      - main
+      - main  # Adjust if needed
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: azure_credential  
+- group: azure_credential  # Clean variable names without ARM_
+- name: TF_VERSION
+  value: '1.6.6'
 
 stages:
-  - stage: Terraform_Deploy
-    displayName: 'Terraform Apply'
-    jobs:
-      - job: Terraform
-        displayName: 'Run Terraform'
-        timeoutInMinutes: 10
-        steps:
-          - checkout: self  # Ensure your Terraform configuration is checked out
+# ------------------------------
+# Stage 1: Terraform Plan
+# ------------------------------
+- stage: TerraformPlan
+  displayName: 'Terraform Plan'
+  jobs:
+  - job: Plan
+    displayName: 'Run terraform plan'
+    steps:
 
-          # Install Terraform
-          - task: TerraformInstaller@0
-            inputs:
-              terraformVersion: 'latest'
-            displayName: 'Install Terraform'
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '$(TF_VERSION)'
+      displayName: 'Install Terraform'
 
-          # Azure Login using Service Connection
-          - task: AzureCLI@2
-            inputs:
-              azureSubscription: 'azure-sc'
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                az account show
-            displayName: 'Azure Login'
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'azure-sc'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Setting environment variables..."
+          export ARM_CLIENT_ID=$(CLIENT_ID)
+          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
+          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(TENANT_ID)
 
-          # Terraform Init and Import using Bash
-          - task: Bash@3
-            name: TerraformImport
-            inputs:
-              targetType: 'inline'
-              script: |
-                terraform init
-                # Import the existing resource group, ensure the name matches 'rg'
-                terraform import \
-                  azurerm_resource_group.rg /subscriptions/$(SUBSCRIPTION_ID)/resourceGroups/RG1
-              workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform/'
-            displayName: 'Terraform Import RG1'
+          echo "Initializing Terraform..."
+          terraform init
 
-          # Validate Terraform configuration
-          - script: |
-              terraform validate
-            displayName: 'Terraform Validate'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+          echo "Running Terraform Plan..."
+          terraform plan -out=tfplan
+      displayName: 'Terraform Init & Plan'
 
-          # Run Terraform Plan
-          - script: |
-              terraform plan -out=tfplan \
-                -var "SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)" \
-                -var "CLIENT_ID=$(CLIENT_ID)" \
-                -var "CLIENT_SECRET=$(CLIENT_SECRET)" \
-                -var "TENANT_ID=$(TENANT_ID)"
-            displayName: 'Terraform Plan'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+# ------------------------------
+# Stage 2: Terraform Apply
+# ------------------------------
+- stage: TerraformApply
+  displayName: 'Terraform Apply'
+  dependsOn: TerraformPlan
+  condition: succeeded()
+  jobs:
+  - job: Apply
+    displayName: 'Apply Terraform Changes'
+    steps:
 
-          # Apply Terraform changes
-          - script: |
-              terraform apply -auto-approve tfplan
-            displayName: 'Terraform Apply'
-            workingDirectory: $(Build.SourcesDirectory)/Project_2/terraform/
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '$(TF_VERSION)'
+      displayName: 'Install Terraform'
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'azure-sc'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          export ARM_CLIENT_ID=$(CLIENT_ID)
+          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
+          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(TENANT_ID)
+
+          echo "Initializing Terraform..."
+          terraform init
+
+          echo "Applying Terraform Plan..."
+          terraform apply -auto-approve
+      displayName: 'Terraform Apply'
 
 
 
