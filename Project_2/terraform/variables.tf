@@ -13,3 +13,8 @@ variable "location" {
   type        = string
   default     = "eastus"
 }
+
+variable "address_space" {
+  description = "The address space for the VNet"
+  type        = list(string)
+}
