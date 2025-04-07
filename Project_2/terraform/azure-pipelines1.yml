@@ -1,17 +1,16 @@
 trigger:
   branches:
     include:
-      - main  # Adjust if needed
+      - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-- group: azure_credential  # Clean variable names without ARM_
+- group: azure_credential
 - name: TF_VERSION
   value: '1.6.6'
 
-stages:
 # ------------------------------
 # Stage 1: Terraform Plan
 # ------------------------------
@@ -32,6 +31,7 @@ stages:
         azureSubscription: 'azure-sc'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # ✅ Add this line
         inlineScript: |
           echo "Setting environment variables..."
           export ARM_CLIENT_ID=$(CLIENT_ID)
@@ -68,6 +68,7 @@ stages:
         azureSubscription: 'azure-sc'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # ✅ Add this line
         inlineScript: |
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
@@ -80,6 +81,7 @@ stages:
           echo "Applying Terraform Plan..."
           terraform apply -auto-approve
       displayName: 'Terraform Apply'
+
 
 
 
