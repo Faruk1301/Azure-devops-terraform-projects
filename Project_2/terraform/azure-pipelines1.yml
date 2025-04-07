@@ -19,6 +19,7 @@ jobs:
         inputs:
           terraformVersion: '$(TF_VERSION)'
         displayName: 'Install Terraform'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Set working directory at step level
 
       - task: AzureCLI@2
         inputs:
@@ -38,7 +39,7 @@ jobs:
             echo "Running Terraform Plan..."
             terraform plan -out=tfplan
         displayName: 'Terraform Init & Plan'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Added workingDirectory here
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Set working directory at step level
 
   - job: TerraformApply
     displayName: 'Terraform Apply'
@@ -49,6 +50,7 @@ jobs:
         inputs:
           terraformVersion: '$(TF_VERSION)'
         displayName: 'Install Terraform'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Set working directory at step level
 
       - task: AzureCLI@2
         inputs:
@@ -67,7 +69,8 @@ jobs:
             echo "Applying Terraform Plan..."
             terraform apply -auto-approve
         displayName: 'Terraform Apply'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Added workingDirectory here
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Set working directory at step level
+
 
 
 
