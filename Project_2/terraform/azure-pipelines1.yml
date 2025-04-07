@@ -45,7 +45,6 @@ stages:
           echo "Running Terraform Plan..."
           terraform plan -out=tfplan
       displayName: 'Terraform Init & Plan'
-      workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Place workingDirectory here
 
 # ------------------------------
 # Stage 2: Terraform Apply
@@ -81,7 +80,7 @@ stages:
           echo "Applying Terraform Plan..."
           terraform apply -auto-approve
       displayName: 'Terraform Apply'
-      workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Place workingDirectory here
+
 
 
 
