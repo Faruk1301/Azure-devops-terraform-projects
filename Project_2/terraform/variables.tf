@@ -1,20 +1,15 @@
-variable "SUBSCRIPTION_ID" {
-  description = "Azure Subscription ID"
+variable "resource_group_name" {
+  description = "Name of the resource group"
   type        = string
 }
 
-variable "TENANT_ID" {
-  description = "Azure Tenant ID"
+variable "vnet_name" {
+  description = "Name of the virtual network"
   type        = string
 }
 
-variable "CLIENT_ID" {
-  description = "Azure Client ID"
+variable "location" {
+  description = "Azure region for resources"
   type        = string
+  default     = "eastus"
 }
-
-variable "CLIENT_SECRET" {
-  description = "Azure Client Secret"
-  type        = string
-}
-
