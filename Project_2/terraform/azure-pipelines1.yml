@@ -13,18 +13,25 @@ variables:
   value: 'my-vnet'
 - name: LOCATION
   value: 'eastus'
-- name: ADDRESS_SPACE
-  value: '["10.0.0.0/16"]'
 
 pool:
   vmImage: 'ubuntu-latest'
-  timeoutInMinutes: 30 # Prevents timeout failures
 
 stages:
 - stage: Deploy
   jobs:
   - job: Terraform
     steps:
+    - checkout: self  # Checks out entire repo
+    
+    # Navigate to Project_2/terraform directory
+    - bash: |
+        echo "Changing to terraform directory..."
+        cd $(Build.SourcesDirectory)/Project_2/terraform
+        echo "Current directory: $(pwd)"
+        ls -la
+      displayName: 'Verify Terraform files'
+        
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '$(TF_VERSION)'
@@ -35,11 +42,10 @@ stages:
         azureSubscription: 'azure-sc'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
-        failOnStderr: true
+        workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform'
         inlineScript: |
-          # Enable detailed logging
-          set -e
-          echo "##[group]Configure Azure Credentials"
+          set -ex
+          echo "##[group]Azure Authentication"
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
@@ -50,16 +56,20 @@ stages:
           terraform init -no-color
           echo "##[endgroup]"
           
+          echo "##[group]Terraform Plan"
+          terraform plan -no-color \
+            -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
+            -var="vnet_name=$(VNET_NAME)" \
+            -var="location=$(LOCATION)"
+          echo "##[endgroup]"
+          
           echo "##[group]Terraform Apply"
           terraform apply -auto-approve -no-color \
             -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
             -var="vnet_name=$(VNET_NAME)" \
-            -var="location=$(LOCATION)" \
-            -var="address_space=$(ADDRESS_SPACE)"
+            -var="location=$(LOCATION)"
           echo "##[endgroup]"
       displayName: 'Deploy VNet'
-
-
 
 
 
