@@ -38,7 +38,7 @@ jobs:
             echo "Running Terraform Plan..."
             terraform plan -out=tfplan
         displayName: 'Terraform Init & Plan'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correct place for workingDirectory
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Move it to the task level, correctly
 
   - job: TerraformApply
     displayName: 'Terraform Apply'
@@ -67,7 +67,8 @@ jobs:
             echo "Applying Terraform Plan..."
             terraform apply -auto-approve
         displayName: 'Terraform Apply'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correct place for workingDirectory
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correctly placed here at the task level
+
 
 
 
