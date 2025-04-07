@@ -4,7 +4,7 @@ trigger:
       - main
 
 variables:
-- group: azure_credential  # Contains: CLIENT_ID, CLIENT_SECRET, SUBSCRIPTION_ID, TENANT_ID
+- group: azure_credential
 - name: TF_VERSION
   value: '1.6.6'
 - name: RESOURCE_GROUP_NAME
@@ -13,13 +13,15 @@ variables:
   value: 'my-vnet'
 - name: LOCATION
   value: 'eastus'
+- name: ADDRESS_SPACE
+  value: '["10.0.0.0/16"]'
 
 pool:
   vmImage: 'ubuntu-latest'
+  timeoutInMinutes: 30 # Prevents timeout failures
 
 stages:
-- stage: DeployVNet
-  displayName: 'Deploy Virtual Network'
+- stage: Deploy
   jobs:
   - job: Terraform
     steps:
@@ -33,24 +35,29 @@ stages:
         azureSubscription: 'azure-sc'
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
+        failOnStderr: true
         inlineScript: |
-          # Set Azure provider credentials
+          # Enable detailed logging
+          set -e
+          echo "##[group]Configure Azure Credentials"
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
           export ARM_TENANT_ID=$(TENANT_ID)
-
-          # Initialize Terraform
-          terraform init
-
-          # Deploy VNet
-          terraform apply -auto-approve \
+          echo "##[endgroup]"
+          
+          echo "##[group]Terraform Init"
+          terraform init -no-color
+          echo "##[endgroup]"
+          
+          echo "##[group]Terraform Apply"
+          terraform apply -auto-approve -no-color \
             -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
             -var="vnet_name=$(VNET_NAME)" \
             -var="location=$(LOCATION)" \
-            -var="address_space=['10.0.0.0/16']"
-      displayName: 'Create Azure VNet'
-
+            -var="address_space=$(ADDRESS_SPACE)"
+          echo "##[endgroup]"
+      displayName: 'Deploy VNet'
 
 
 
