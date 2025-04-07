@@ -7,67 +7,81 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: azure_credential  # Clean variable names without ARM_
-  - name: TF_VERSION
-    value: '1.6.6'
+- group: azure_credential  # Clean variable names without ARM_
+- name: TF_VERSION
+  value: '1.6.6'
 
-jobs:
-  - job: TerraformPlan
-    displayName: 'Terraform Plan'
+stages:
+# ------------------------------
+# Stage 1: Terraform Plan
+# ------------------------------
+- stage: TerraformPlan
+  displayName: 'Terraform Plan'
+  jobs:
+  - job: Plan
+    displayName: 'Run terraform plan'
     steps:
-      - task: TerraformInstaller@1
-        inputs:
-          terraformVersion: '$(TF_VERSION)'
-        displayName: 'Install Terraform'
 
-      - task: AzureCLI@2
-        inputs:
-          azureSubscription: 'azure-sc'
-          scriptType: 'bash'
-          scriptLocation: 'inlineScript'
-          inlineScript: |
-            echo "Setting environment variables..."
-            export ARM_CLIENT_ID=$(CLIENT_ID)
-            export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
-            export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-            export ARM_TENANT_ID=$(TENANT_ID)
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '$(TF_VERSION)'
+      displayName: 'Install Terraform'
 
-            echo "Initializing Terraform..."
-            terraform init
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'azure-sc'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Setting environment variables..."
+          export ARM_CLIENT_ID=$(CLIENT_ID)
+          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
+          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(TENANT_ID)
 
-            echo "Running Terraform Plan..."
-            terraform plan -out=tfplan
-        displayName: 'Terraform Init & Plan'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correctly placed in task level
+          echo "Initializing Terraform..."
+          terraform init
 
-  - job: TerraformApply
-    displayName: 'Terraform Apply'
-    dependsOn: TerraformPlan
-    condition: succeeded()
+          echo "Running Terraform Plan..."
+          terraform plan -out=tfplan
+      displayName: 'Terraform Init & Plan'
+      workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Place workingDirectory here
+
+# ------------------------------
+# Stage 2: Terraform Apply
+# ------------------------------
+- stage: TerraformApply
+  displayName: 'Terraform Apply'
+  dependsOn: TerraformPlan
+  condition: succeeded()
+  jobs:
+  - job: Apply
+    displayName: 'Apply Terraform Changes'
     steps:
-      - task: TerraformInstaller@1
-        inputs:
-          terraformVersion: '$(TF_VERSION)'
-        displayName: 'Install Terraform'
 
-      - task: AzureCLI@2
-        inputs:
-          azureSubscription: 'azure-sc'
-          scriptType: 'bash'
-          scriptLocation: 'inlineScript'
-          inlineScript: |
-            export ARM_CLIENT_ID=$(CLIENT_ID)
-            export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
-            export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-            export ARM_TENANT_ID=$(TENANT_ID)
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '$(TF_VERSION)'
+      displayName: 'Install Terraform'
 
-            echo "Initializing Terraform..."
-            terraform init
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'azure-sc'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          export ARM_CLIENT_ID=$(CLIENT_ID)
+          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
+          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(TENANT_ID)
 
-            echo "Applying Terraform Plan..."
-            terraform apply -auto-approve
-        displayName: 'Terraform Apply'
-        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correctly placed here as well
+          echo "Initializing Terraform..."
+          terraform init
+
+          echo "Applying Terraform Plan..."
+          terraform apply -auto-approve
+      displayName: 'Terraform Apply'
+      workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Place workingDirectory here
 
 
 
