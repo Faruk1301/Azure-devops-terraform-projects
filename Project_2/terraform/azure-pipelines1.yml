@@ -1,27 +1,29 @@
 trigger:
   branches:
     include:
-      - main  # Adjust if needed
+      - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-- group: azure_credential  # Clean variable names without ARM_
+- group: azure_credential  # Contains CLIENT_ID, CLIENT_SECRET, SUBSCRIPTION_ID, TENANT_ID
 - name: TF_VERSION
   value: '1.6.6'
+- name: RESOURCE_GROUP_NAME
+  value: 'my-vnet-rg'
+- name: VNET_NAME
+  value: 'my-vnet'
+- name: LOCATION
+  value: 'eastus'
 
 stages:
-# ------------------------------
-# Stage 1: Terraform Plan
-# ------------------------------
-- stage: TerraformPlan
-  displayName: 'Terraform Plan'
+- stage: TerraformDeploy
+  displayName: 'Terraform VNet Deployment'
   jobs:
-  - job: Plan
-    displayName: 'Run terraform plan'
+  - job: Deploy
+    displayName: 'Deploy Azure VNet'
     steps:
-
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '$(TF_VERSION)'
@@ -33,55 +35,23 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Setting environment variables..."
+          # Set Terraform Azure provider credentials
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
           export ARM_TENANT_ID=$(TENANT_ID)
 
+          # Initialize Terraform
           echo "Initializing Terraform..."
           terraform init
 
-          echo "Running Terraform Plan..."
-          terraform plan -out=tfplan
-      displayName: 'Terraform Init & Plan'
-
-# ------------------------------
-# Stage 2: Terraform Apply
-# ------------------------------
-- stage: TerraformApply
-  displayName: 'Terraform Apply'
-  dependsOn: TerraformPlan
-  condition: succeeded()
-  jobs:
-  - job: Apply
-    displayName: 'Apply Terraform Changes'
-    steps:
-
-    - task: TerraformInstaller@1
-      inputs:
-        terraformVersion: '$(TF_VERSION)'
-      displayName: 'Install Terraform'
-
-    - task: AzureCLI@2
-      inputs:
-        azureSubscription: 'azure-sc'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          export ARM_CLIENT_ID=$(CLIENT_ID)
-          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
-          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-          export ARM_TENANT_ID=$(TENANT_ID)
-
-          echo "Initializing Terraform..."
-          terraform init
-
-          echo "Applying Terraform Plan..."
-          terraform apply -auto-approve
-      displayName: 'Terraform Apply'
-
-
+          # Plan and apply in one step (for simplicity)
+          echo "Creating Azure VNet..."
+          terraform apply -auto-approve \
+            -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
+            -var="vnet_name=$(VNET_NAME)" \
+            -var="location=$(LOCATION)"
+      displayName: 'Create Azure VNet'
 
 
 
