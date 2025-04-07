@@ -14,7 +14,6 @@ variables:
 jobs:
   - job: TerraformPlan
     displayName: 'Terraform Plan'
-    workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Set working directory at job level
     steps:
       - task: TerraformInstaller@1
         inputs:
@@ -39,12 +38,12 @@ jobs:
             echo "Running Terraform Plan..."
             terraform plan -out=tfplan
         displayName: 'Terraform Init & Plan'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correct place for workingDirectory
 
   - job: TerraformApply
     displayName: 'Terraform Apply'
     dependsOn: TerraformPlan
     condition: succeeded()
-    workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Set working directory at job level
     steps:
       - task: TerraformInstaller@1
         inputs:
@@ -68,6 +67,7 @@ jobs:
             echo "Applying Terraform Plan..."
             terraform apply -auto-approve
         displayName: 'Terraform Apply'
+        workingDirectory: '$(System.DefaultWorkingDirectory)/Project_2/terraform'  # Correct place for workingDirectory
 
 
 
