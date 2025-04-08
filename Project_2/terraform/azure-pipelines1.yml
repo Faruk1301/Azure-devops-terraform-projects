@@ -7,8 +7,9 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: azure_credential  # ✅ Use your correct variable group
-  TF_VERSION: '1.7.5'
+  - group: azure_credential
+  - name: TF_VERSION
+    value: '1.7.5'
 
 stages:
 - stage: Terraform
@@ -27,14 +28,14 @@ stages:
         scriptType: 'bash'
         scriptLocation: 'inlineScript'
         inlineScript: |
-          echo "Setting environment variables for Terraform..."
-          export ARM_CLIENT_ID=$CLIENT_ID
-          export ARM_CLIENT_SECRET=$CLIENT_SECRET
-          export ARM_SUBSCRIPTION_ID=$SUBSCRIPTION_ID
-          export ARM_TENANT_ID=$TENANT_ID
+          echo "Running Terraform from Project_2/terraform"
+          cd $(Build.SourcesDirectory)/Project_2/terraform
 
-          echo "Running Terraform inside Project_2 folder..."
-          cd Project_2
+          echo "Exporting ARM environment variables..."
+          export ARM_CLIENT_ID=$(CLIENT_ID)
+          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
+          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(TENANT_ID)
 
           terraform init
           terraform plan -out=tfplan
