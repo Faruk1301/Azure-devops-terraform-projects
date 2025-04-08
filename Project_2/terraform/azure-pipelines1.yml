@@ -18,7 +18,7 @@ stages:
     steps:
     - checkout: self
 
-    - task: UseTerraform@0
+    - task: TerraformInstaller@1
       inputs:
         terraformVersion: $(TF_VERSION)
 
