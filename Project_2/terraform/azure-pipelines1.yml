@@ -16,7 +16,7 @@ variables:
 
 pool:
   vmImage: 'ubuntu-latest'
-  timeoutInMinutes: 60  # Increased timeout to avoid job cancellations
+  timeoutInMinutes: 30
 
 stages:
 - stage: Validate
@@ -36,21 +36,15 @@ stages:
         scriptLocation: 'inlineScript'
         workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform'
         inlineScript: |
-          set -exo pipefail
-          echo "Exporting credentials..."
+          set -e
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
           export ARM_TENANT_ID=$(TENANT_ID)
 
-          echo "Initializing Terraform..."
-          terraform init -no-color -input=false
-
-          echo "Validating Terraform..."
-          terraform validate -no-color
-
-          echo "Planning Terraform deployment..."
-          terraform plan -no-color -input=false \
+          terraform init -input=false
+          terraform validate
+          terraform plan -input=false \
             -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
             -var="vnet_name=$(VNET_NAME)" \
             -var="location=$(LOCATION)"
@@ -74,30 +68,16 @@ stages:
         scriptLocation: 'inlineScript'
         workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform'
         inlineScript: |
-          set -exo pipefail
-          echo "Exporting credentials..."
+          set -e
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
           export ARM_TENANT_ID=$(TENANT_ID)
 
-          echo "Applying Terraform changes..."
-          terraform apply -auto-approve -no-color -input=false \
+          terraform apply -auto-approve -input=false \
             -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
             -var="vnet_name=$(VNET_NAME)" \
             -var="location=$(LOCATION)"
-
-    - task: Bash@3
-      inputs:
-        targetType: 'inline'
-        script: |
-          echo "Saving Terraform outputs to JSON..."
-          terraform output -json > $(Build.ArtifactStagingDirectory)/outputs.json
-
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: '$(Build.ArtifactStagingDirectory)/outputs.json'
-        artifact: 'terraform-outputs'
 
 
          
