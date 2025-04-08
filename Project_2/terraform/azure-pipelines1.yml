@@ -1,77 +1,65 @@
-trigger:
-  branches:
-    include:
-      - main
+terraform {
+  required_version = "~> 1.6.6"
+  
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.85.0"
+    }
+  }
+}
 
-variables:
-- group: azure_credential
-- name: TF_VERSION
-  value: '1.6.6'
-- name: RESOURCE_GROUP_NAME
-  value: 'my-vnet-rg'
-- name: VNET_NAME
-  value: 'my-vnet'
-- name: LOCATION
-  value: 'eastus'
+provider "azurerm" {
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = true
+    }
+  }
+  skip_provider_registration = true
+}
 
-pool:
-  vmImage: 'ubuntu-latest'
-  timeoutInMinutes: 30
+variable "resource_group_name" {
+  description = "Name of the resource group"
+  type        = string
+}
 
-stages:
-- stage: Deploy
-  jobs:
-  - job: Terraform
-    steps:
-    - checkout: self
-    
-    - bash: |
-        echo "##[group]Verify Files"
-        cd $(Build.SourcesDirectory)/Project_2/terraform
-        pwd
-        ls -la
-        echo "##[endgroup]"
-      displayName: 'Verify Terraform Files'
+variable "vnet_name" {
+  description = "Name of the virtual network"
+  type        = string
+}
 
-    - task: TerraformInstaller@1
-      inputs:
-        terraformVersion: '$(TF_VERSION)'
-      displayName: 'Install Terraform'
+variable "location" {
+  description = "Azure region"
+  type        = string
+  default     = "eastus"
+}
 
-    - task: AzureCLI@2
-      inputs:
-        azureSubscription: 'azure-sc'
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform'
-        failOnStderr: true
-        inlineScript: |
-          set -exo pipefail
-          echo "##[group]Azure Authentication"
-          export ARM_CLIENT_ID=$(CLIENT_ID)
-          export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
-          export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
-          export ARM_TENANT_ID=$(TENANT_ID)
-          echo "##[endgroup]"
+resource "azurerm_resource_group" "vnet_rg" {
+  name     = var.resource_group_name
+  location = var.location
+}
 
-          echo "##[group]Terraform Init"
-          terraform init -no-color -input=false
-          echo "##[endgroup]"
+resource "azurerm_virtual_network" "main" {
+  name                = var.vnet_name
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.vnet_rg.location
+  resource_group_name = azurerm_resource_group.vnet_rg.name
+  
+  tags = {
+    Environment = "Production"
+    Terraform   = "true"
+  }
+}
 
-          echo "##[group]Terraform Validate"
-          terraform validate -no-color
-          echo "##[endgroup]"
+output "vnet_id" {
+  description = "Virtual Network ID"
+  value       = azurerm_virtual_network.main.id
+}
 
-          echo "##[group]Terraform Apply"
-          terraform apply -auto-approve -no-color -input=false \
-            -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
-            -var="vnet_name=$(VNET_NAME)" \
-            -var="location=$(LOCATION)"
-          echo "##[endgroup]"
-      displayName: 'Deploy VNet'
-
-
-
+output "vnet_name" {
+  description = "Virtual Network Name"
+  value       = azurerm_virtual_network.main.name
+}
 
          
 
