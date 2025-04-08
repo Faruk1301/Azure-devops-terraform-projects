@@ -27,6 +27,7 @@ stages:
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '$(TF_VERSION)'
+
     - task: AzureCLI@2
       inputs:
         azureSubscription: 'azure-sc'
@@ -34,15 +35,15 @@ stages:
         scriptLocation: 'inlineScript'
         workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform'
         inlineScript: |
-          set -exo pipefail
+          set -euo pipefail
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
           export ARM_TENANT_ID=$(TENANT_ID)
-          
-          terraform init -no-color -input=false
+
+          terraform init -input=false -no-color
           terraform validate -no-color
-          terraform plan -no-color -input=false \
+          terraform plan -input=false -no-color \
             -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
             -var="vnet_name=$(VNET_NAME)" \
             -var="location=$(LOCATION)"
@@ -57,6 +58,7 @@ stages:
     - task: TerraformInstaller@1
       inputs:
         terraformVersion: '$(TF_VERSION)'
+
     - task: AzureCLI@2
       inputs:
         azureSubscription: 'azure-sc'
@@ -64,25 +66,25 @@ stages:
         scriptLocation: 'inlineScript'
         workingDirectory: '$(Build.SourcesDirectory)/Project_2/terraform'
         inlineScript: |
-          set -exo pipefail
+          set -euo pipefail
           export ARM_CLIENT_ID=$(CLIENT_ID)
           export ARM_CLIENT_SECRET=$(CLIENT_SECRET)
           export ARM_SUBSCRIPTION_ID=$(SUBSCRIPTION_ID)
           export ARM_TENANT_ID=$(TENANT_ID)
-          
-          terraform apply -auto-approve -no-color -input=false \
+
+          terraform init -input=false -no-color
+          terraform apply -auto-approve -input=false -no-color \
             -var="resource_group_name=$(RESOURCE_GROUP_NAME)" \
             -var="vnet_name=$(VNET_NAME)" \
             -var="location=$(LOCATION)"
-    - task: Bash@3
-      inputs:
-        targetType: 'inline'
-        script: |
-          terraform output -json > $(Build.ArtifactStagingDirectory)/outputs.json
+          
+          terraform output -json > outputs.json
+
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: '$(Build.ArtifactStagingDirectory)/outputs.json'
+        targetPath: '$(Build.SourcesDirectory)/Project_2/terraform/outputs.json'
         artifact: 'terraform-outputs'
+
          
 
 
