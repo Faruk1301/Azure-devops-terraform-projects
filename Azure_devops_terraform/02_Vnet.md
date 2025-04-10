@@ -48,10 +48,18 @@ resource "azurerm_virtual_network" "example" {
 🛠️ Automate with Azure DevOps
 To integrate Terraform with Azure DevOps, follow these steps:
 
-🟡 Step 1: Create an Azure DevOps Service Connection
-Go to Azure DevOps → Project Settings → Service connections
-Create a new Azure Resource Manager (ARM) service connection
-Use Service Principal (automatic) authentication
+## 🟡 Step 1: Create an Azure DevOps Service Connection
+
+1. Go to 👉 **Azure DevOps**  
+2. Navigate to **Project Settings** → **Service connections**
+3. Click **New service connection**
+4. Select **Azure Resource Manager**
+5. Choose **Service Principal (automatic)** authentication
+6. Select the appropriate **subscription** and authorize access
+7. Name your service connection (e.g., `azure-sc`) and click **Save**
+
+✅ This service connection will be used in your Azure DevOps pipeline to authenticate and deploy resources to Azure.
+
 🟡 Step 2: Define the Azure DevOps Pipeline (azure-pipelines.yml)
 ```yaml
 trigger:
