@@ -53,8 +53,7 @@ Go to Azure DevOps → Project Settings → Service connections
 Create a new Azure Resource Manager (ARM) service connection
 Use Service Principal (automatic) authentication
 🟡 Step 2: Define the Azure DevOps Pipeline (azure-pipelines.yml)
-
-```
+```yaml
 trigger:
 - main
 
@@ -120,6 +119,7 @@ steps:
     CLIENT_SECRET: $(CLIENT_SECRET)
     SUBSCRIPTION_ID: $(SUBSCRIPTION_ID)
     TENANT_ID: $(TENANT_ID)
+```
 
 ✅ Verify the Deployment
 After applying Terraform, verify the deployment in Azure Portal:
