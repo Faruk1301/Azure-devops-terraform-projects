@@ -129,4 +129,22 @@ Go to → Virtual network
 Search for → Vnet
 OR, use the Azure CLI:
 az group show --name virtual-net
+## ✅ Verify the Deployment
+
+After applying Terraform, you can verify that the Virtual Network has been successfully created in Azure.
+
+### 🔎 Option 1: Using Azure Portal
+1. Navigate to 👉 [Azure Portal](https://portal.azure.com)
+2. Go to **Virtual networks**
+3. Search for your VNet name (e.g., `my-vnet`)
+4. Confirm that the VNet is listed and properly configured
+
+### 🔎 Option 2: Using Azure CLI
+
+You can also verify the deployment using the Azure CLI:
+
+```bash
+az network vnet show \
+  --name <vnet-name> \
+  --resource-group <resource-group-name>
 
