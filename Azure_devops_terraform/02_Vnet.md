@@ -121,14 +121,7 @@ steps:
     TENANT_ID: $(TENANT_ID)
 ```
 
-✅ Verify the Deployment
-After applying Terraform, verify the deployment in Azure Portal:
 
-Navigate to → Azure Portal
-Go to → Virtual network
-Search for → Vnet
-OR, use the Azure CLI:
-az group show --name virtual-net
 ## ✅ Verify the Deployment
 
 After applying Terraform, you can verify that the Virtual Network has been successfully created in Azure.
